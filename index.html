@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Green FM - Đẩy Màn Hình Lưng Áo</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PeerJS (Kết nối trực tiếp P2P qua chung mạng Wi-Fi/Hotspot siêu nhanh) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- QRCodeJS (Tạo mã QR Wi-Fi trực tiếp trên máy không cần tải ảnh) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Font Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: contain;
+    }
+    @keyframes starPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.55)); }
+      50% { transform: scale(1.14); filter: drop-shadow(0 0 18px rgba(250, 204, 21, 0.95)); }
+    }
+    .star-animate {
+      animation: starPulse 1.8s ease-in-out infinite;
+    }
+    .star-animate:nth-child(2) { animation-delay: 0.15s; }
+    .star-animate:nth-child(3) { animation-delay: 0.3s; }
+    .star-animate:nth-child(4) { animation-delay: 0.45s; }
+    .star-animate:nth-child(5) { animation-delay: 0.6s; }
+    #wifi-qr-box img, #wifi-qr-box canvas {
+      margin: 0 auto;
+      border-radius: 10px;
+      max-width: 100%;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body class="bg-[#061a14] text-white min-h-screen flex flex-col selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden">
+
+  <!-- ==================== THANH ĐIỀU HƯỚNG (ẨN KHI Ở MÀN HÌNH KHÁCH) ==================== -->
+  <header id="top-nav" class="sticky top-0 z-30 bg-[#08221a]/95 backdrop-blur-md border-b border-emerald-800/60 px-3 sm:px-5 py-3">
+    <div class="max-w-lg mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 font-black text-base shadow-lg shadow-emerald-500/20 shrink-0">
+          GF
+        </div>
+        <div class="min-w-0">
+          <div class="font-extrabold text-sm sm:text-base tracking-tight text-white truncate">Green FM Display</div>
+          <div class="flex items-center gap-1.5 text-[11px] text-emerald-300/90">
+            <span id="conn-dot" class="w-2 h-2 rounded-full bg-amber-400 inline-block shrink-0"></span>
+            <span id="conn-text" class="truncate">Sẵn sàng kết nối</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button onclick="switchView('home', true)" class="px-2.5 py-2 rounded-xl text-xs font-semibold bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-200 border border-emerald-700/50 transition active:scale-95">
+          🔀 Đổi máy
+        </button>
+        <button onclick="openSettings()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-white border border-slate-700 transition flex items-center gap-1 active:scale-95">
+          <span>⚙️</span> <span>Cài đặt</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== 1. MÀN HÌNH CHỌN VAI TRÒ & NHẬP MÃ KẾT NỐI ==================== -->
+  <main id="view-home" class="hidden flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-[#0b2920] border border-emerald-800/60 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5">
+      <div class="text-center space-y-1.5">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs font-bold">
+          ⚡ Kết nối trực tiếp P2P (Chung mạng Wi-Fi)
+        </div>
+        <h1 class="text-2xl font-black text-white">Chọn vai trò cho máy này</h1>
+        <p class="text-xs sm:text-sm text-emerald-200/75">
+          Bật điểm phát Wi-Fi chung giữa 2 máy rồi nhập mã 4 số để ghép đôi tức thì.
+        </p>
+      </div>
+
+      <!-- Chọn làm máy Tài xế -->
+      <button onclick="switchView('driver', true)" class="w-full p-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-left flex items-center gap-4 shadow-lg shadow-emerald-500/20 transition active:scale-[0.98]">
+        <div class="w-12 h-12 rounded-2xl bg-slate-950/15 flex items-center justify-center text-2xl shrink-0">📱</div>
+        <div class="min-w-0 flex-1">
+          <div class="font-black text-base sm:text-lg leading-tight">Máy Tài xế (Phát mã)</div>
+          <div class="text-xs font-medium text-slate-900/80 mt-0.5">Đẩy QR, chia sẻ Wi-Fi, 5 sao & nhận tốc độ</div>
+        </div>
+        <span class="text-xl font-black">→</span>
+      </button>
+
+      <!-- Chọn làm máy Khách + Nhập mã 4 số trực tiếp -->
+      <div class="p-4 rounded-2xl bg-[#10382c] border border-emerald-600/50 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-2xl shrink-0">🖥️</div>
+          <div class="min-w-0">
+            <div class="font-bold text-base leading-tight text-emerald-100">Màn hình Khách TCL (Lưng áo)</div>
+            <div class="text-xs text-emerald-200/75 mt-0.5">Nhập mã 4 số hiển thị trên máy tài xế</div>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <input
+            id="quick-join-code"
+            type="text"
+            inputmode="numeric"
+            maxlength="12"
+            placeholder="Nhập mã (vd: 6868)"
+            class="flex-1 min-w-0 px-3.5 py-3 rounded-xl bg-[#061812] border border-emerald-600/70 text-emerald-200 font-mono font-black text-lg tracking-widest text-center focus:border-emerald-400 outline-none"
+          />
+          <button onclick="joinAsPassengerWithCode()" class="px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm whitespace-nowrap transition active:scale-95">
+            Kết nối →
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs text-emerald-200/70">
+        <div>Mã máy này: <strong id="home-room-id" class="text-emerald-300 font-mono text-sm">----</strong></div>
+        <button onclick="openSettings()" class="text-emerald-400 hover:text-emerald-300 underline font-semibold">
+          Cài đặt Ngân hàng & Wi-Fi
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== 2. GIAO DIỆN TÀI XẾ (MÁY CHÍNH) ==================== -->
+  <main id="view-driver" class="hidden flex-1 w-full max-w-lg mx-auto p-3.5 sm:p-5 flex flex-col gap-3.5 pb-8">
+
+    <!-- Thanh mã ghép đôi & trạng thái máy khách -->
+    <section id="peer-status-bar" class="rounded-2xl bg-[#0a231c] border border-amber-500/40 p-3.5 flex items-center justify-between gap-2 shadow">
+      <div class="min-w-0 space-y-0.5">
+        <div class="flex items-center gap-2">
+          <span id="peer-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
+          <span id="peer-text" class="text-xs font-bold text-amber-200 truncate">Đang chờ màn hình khách nhập mã...</span>
+        </div>
+        <div class="text-xs text-emerald-200/80 pl-4">
+          Mã ghép đôi: <strong id="driver-room-badge" class="font-mono text-base text-emerald-300 tracking-wider">----</strong>
+        </div>
+      </div>
+      <button onclick="forceReconnect()" class="px-3 py-2 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 text-xs font-bold shrink-0 transition active:scale-95">
+        🔄 Nối lại
+      </button>
+    </section>
+
+    <!-- Hộp hiển thị yêu cầu tốc độ từ khách -->
+    <section id="driver-status-card" class="rounded-2xl bg-[#0c2d23] border border-emerald-700/60 p-4 shadow-lg transition-colors duration-300">
+      <div class="flex items-center justify-between gap-2 mb-1.5">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-300/80">Tín hiệu từ khách sau lưng</span>
+        <button id="btn-toggle-voice" onclick="toggleVoice()" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 transition active:scale-95">
+          🔊 Giọng nói: BẬT
+        </button>
+      </div>
+      <div id="driver-status-text" class="text-lg sm:text-xl font-extrabold text-amber-300 leading-snug">
+        Chưa có yêu cầu từ khách
+      </div>
+      <div id="driver-status-time" class="text-[11px] text-emerald-200/60 mt-1">
+        Sẵn sàng nhận tín hiệu trực tiếp qua mạng Wi-Fi
+      </div>
+    </section>
+
+    <!-- Khối tạo & đẩy mã VietQR -->
+    <section class="rounded-2xl bg-[#0b271f] border border-emerald-800/70 p-4 space-y-3.5 shadow-lg">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold uppercase tracking-wider text-emerald-300">Thanh toán VietQR</span>
+        <span id="driver-bank-badge" class="text-[11px] font-mono text-emerald-200/80 bg-emerald-950 px-2.5 py-1 rounded-lg border border-emerald-800/70">
+          MB • 0123456789
+        </span>
+      </div>
+
+      <!-- Ô nhập số tiền -->
+      <div class="bg-white rounded-2xl p-3 text-center shadow-inner">
+        <input
+          id="fare-input"
+          type="number"
+          inputmode="numeric"
+          placeholder="Nhập tiền (vd: 35)"
+          oninput="updateFarePreview()"
+          class="w-full text-center text-3xl sm:text-4xl font-black text-emerald-700 outline-none bg-transparent placeholder:text-slate-300 placeholder:text-xl placeholder:font-semibold"
+        />
+        <div id="fare-preview" class="text-xs font-semibold text-slate-500 mt-1">
+          Gõ 35 sẽ tự hiểu là 35.000 đ
+        </div>
+      </div>
+
+      <!-- Nút mệnh giá nhanh -->
+      <div class="grid grid-cols-4 gap-2">
+        <button onclick="setQuickFare(20)" class="py-2.5 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-100 font-bold text-sm transition active:scale-95">20k</button>
+        <button onclick="setQuickFare(30)" class="py-2.5 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-100 font-bold text-sm transition active:scale-95">30k</button>
+        <button onclick="setQuickFare(50)" class="py-2.5 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-100 font-bold text-sm transition active:scale-95">50k</button>
+        <button onclick="setQuickFare(100)" class="py-2.5 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-100 font-bold text-sm transition active:scale-95">100k</button>
+      </div>
+
+      <!-- Nút đẩy QR -->
+      <button onclick="pushQR()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-black text-base sm:text-lg shadow-lg shadow-emerald-500/20 transition active:scale-[0.98]">
+        💳 ĐẨY MÃ QR LÊN MÀN HÌNH KHÁCH
+      </button>
+    </section>
+
+    <!-- Khối điều khiển màn hình nhanh (Wi-Fi, 5 Sao, Về màn chào) -->
+    <section class="grid grid-cols-1 gap-2.5">
+      <button onclick="pushWifi()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-slate-950 font-black text-base shadow-lg shadow-sky-500/20 transition active:scale-[0.98]">
+        📶 CHIA SẺ WI-FI CHO KHÁCH (<span id="btn-wifi-preview">Chưa cài</span>)
+      </button>
+
+      <button onclick="pushRate5()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black text-base shadow-lg shadow-amber-500/20 transition active:scale-[0.98]">
+        ⭐ HOÀN THÀNH • NHỜ ĐÁNH GIÁ 5 SAO
+      </button>
+
+      <button onclick="pushReset()" class="w-full py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600/70 text-white font-bold text-sm sm:text-base transition active:scale-[0.98]">
+        🔄 VỀ MÀN HÌNH CHÀO (<span id="btn-greeting-preview">Green FM xin chào</span>)
+      </button>
+    </section>
+
+    <!-- Gửi thông báo chữ nhanh lên lưng áo -->
+    <section class="rounded-2xl bg-[#0b271f] border border-emerald-800/60 p-3.5 space-y-2.5">
+      <div class="text-xs font-bold text-emerald-300">💬 Đẩy dòng chữ tùy ý lên màn hình khách</div>
+      <div class="flex gap-2">
+        <input id="custom-msg-input" type="text" placeholder="Vd: Sắp tới nơi rồi ạ..." class="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl bg-[#061812] border border-emerald-800 text-white text-sm focus:border-emerald-400 outline-none" />
+        <button onclick="pushCustomMessage()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-extrabold text-sm transition active:scale-95 shrink-0">
+          Gửi
+        </button>
+      </div>
+    </section>
+
+    <!-- Thanh chia sẻ link ngắn nhanh -->
+    <section class="rounded-2xl bg-emerald-950/70 border border-emerald-800/50 p-3.5 flex items-center justify-between gap-2">
+      <div class="min-w-0">
+        <div class="text-[11px] text-emerald-300/80 font-semibold">Link mở nhanh màn hình khách:</div>
+        <div id="driver-short-link-text" class="text-xs font-mono text-emerald-200 truncate">?k=----</div>
+      </div>
+      <button onclick="copyPassengerLink(false)" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 font-bold text-xs whitespace-nowrap transition active:scale-95 shrink-0">
+        📋 Chép link
+      </button>
+    </section>
+  </main>
+
+  <!-- ==================== 3. GIAO DIỆN MÀN HÌNH KHÁCH (TCL LƯNG ÁO) ==================== -->
+  <main id="view-passenger" class="hidden flex-1 flex flex-col min-h-screen w-full relative">
+
+    <!-- 3A. Màn hình Chào & Chọn tốc độ -->
+    <div id="p-screen-greeting" class="flex-1 flex flex-col justify-between p-4 sm:p-6 bg-gradient-to-b from-[#06241b] to-[#04140f] text-center">
+      <div class="pt-1 pb-2">
+        <div id="p-greeting-title" class="text-3xl sm:text-5xl font-black text-emerald-400 tracking-tight leading-tight">
+          Green FM xin chào
+        </div>
+        <p class="text-sm sm:text-lg text-emerald-100/85 mt-1.5 font-medium">
+          Quý khách chạm chọn tốc độ mong muốn:
+        </p>
+      </div>
+
+      <!-- 3 nút cảm ứng siêu to -->
+      <div class="flex-1 flex flex-col gap-3 sm:gap-4 justify-center my-2 max-w-md w-full mx-auto">
+        <button onclick="passengerSelectSpeed('slow', 'Khách muốn đi chậm lại')" class="flex-1 min-h-[78px] rounded-3xl bg-gradient-to-r from-sky-500 to-blue-600 active:scale-[0.97] text-white font-black text-2xl sm:text-3xl shadow-xl shadow-sky-900/40 border-2 border-sky-300/40 flex items-center justify-center gap-3 transition">
+          <span class="text-3xl sm:text-4xl">🐢</span>
+          <span>Đi chậm lại</span>
+        </button>
+
+        <button onclick="passengerSelectSpeed('normal', 'Khách thấy tốc độ vừa phải')" class="flex-1 min-h-[78px] rounded-3xl bg-gradient-to-r from-emerald-500 to-green-600 active:scale-[0.97] text-white font-black text-2xl sm:text-3xl shadow-xl shadow-emerald-900/40 border-2 border-emerald-300/40 flex items-center justify-center gap-3 transition">
+          <span class="text-3xl sm:text-4xl">👌</span>
+          <span>Vừa phải</span>
+        </button>
+
+        <button onclick="passengerSelectSpeed('fast', 'Khách muốn đi nhanh hơn')" class="flex-1 min-h-[78px] rounded-3xl bg-gradient-to-r from-orange-500 to-red-500 active:scale-[0.97] text-white font-black text-2xl sm:text-3xl shadow-xl shadow-orange-900/40 border-2 border-orange-300/40 flex items-center justify-center gap-3 transition">
+          <span class="text-3xl sm:text-4xl">🚀</span>
+          <span>Đi nhanh hơn</span>
+        </button>
+      </div>
+
+      <!-- Nút xem Wi-Fi miễn phí dành cho khách (chỉ hiện khi đã cài Wi-Fi) -->
+      <div id="p-wifi-shortcut-wrap" class="hidden max-w-md w-full mx-auto pt-1 pb-2">
+        <button onclick="openWifiFromPassenger()" class="w-full py-3 rounded-2xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-200 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-95">
+          <span>📶</span>
+          <span>Xem Wi-Fi miễn phí trên xe</span>
+        </button>
+      </div>
+
+      <div class="pt-1 flex items-center justify-between text-[11px] text-emerald-300/60">
+        <span class="flex items-center gap-1.5">
+          <span id="p-conn-dot" class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+          <span id="p-conn-label">Đang nối</span> • Mã <strong id="p-room-footer" class="font-mono text-emerald-200">----</strong>
+        </span>
+        <button onclick="exitPassengerMode()" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-emerald-200/60 hover:text-emerald-200 transition">
+          ⚙️ Đổi mã
+        </button>
+      </div>
+    </div>
+
+    <!-- 3B. Màn hình Mã VietQR Thanh Toán -->
+    <div id="p-screen-qr" class="hidden flex-1 flex flex-col items-center justify-between p-4 sm:p-6 bg-white text-slate-900 text-center">
+      <div class="w-full">
+        <div class="text-sm sm:text-base font-bold text-slate-500 uppercase tracking-wide">Quét mã VietQR thanh toán</div>
+        <div id="p-qr-amount" class="text-4xl sm:text-5xl font-black text-emerald-600 mt-1">0 đ</div>
+      </div>
+
+      <div class="my-3 w-full max-w-[300px] aspect-square bg-slate-50 rounded-2xl border-2 border-slate-200 p-2 flex items-center justify-center shadow-md">
+        <img id="p-qr-img" src="" alt="Mã VietQR" class="w-full h-full object-contain rounded-xl" onerror="this.src='https://placehold.co/320x320/f1f5f9/0f172a?text=Kiem+tra+STK'" />
+      </div>
+
+      <div class="w-full pb-1">
+        <div id="p-qr-thankyou" class="text-2xl sm:text-3xl font-black text-emerald-800">Green FM cảm ơn</div>
+        <div id="p-qr-bankinfo" class="text-xs font-semibold text-slate-500 mt-1"></div>
+      </div>
+    </div>
+
+    <!-- 3C. Màn hình Chia sẻ Wi-Fi (Tên Wi-Fi + Mật khẩu + QR tự vào mạng) -->
+    <div id="p-screen-wifi" class="hidden flex-1 flex flex-col items-center justify-between p-4 sm:p-6 bg-gradient-to-b from-sky-950 via-[#082438] to-slate-950 text-white text-center">
+      <div class="w-full space-y-1">
+        <div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-sky-400/20 border border-sky-300/40 text-sky-200 text-xs sm:text-sm font-bold">
+          📶 Wi-Fi Miễn Phí Trên Xe
+        </div>
+        <div class="text-xs sm:text-sm text-sky-200/80">Quét mã QR bằng camera để tự động kết nối</div>
+      </div>
+
+      <!-- Khung trắng chứa mã QR Wi-Fi -->
+      <div class="my-2 bg-white p-3.5 rounded-3xl shadow-2xl border-4 border-sky-300/40 flex flex-col items-center justify-center">
+        <div id="wifi-qr-box" class="w-[180px] h-[180px] sm:w-[210px] sm:h-[210px] flex items-center justify-center"></div>
+      </div>
+
+      <!-- Thông tin Tên Wi-Fi & Mật khẩu rõ to -->
+      <div class="w-full max-w-md bg-white/10 backdrop-blur-md border border-sky-300/30 rounded-2xl p-3.5 space-y-2 text-left">
+        <div class="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
+          <span class="text-xs sm:text-sm text-sky-200 font-semibold shrink-0">Tên Wi-Fi:</span>
+          <span id="p-wifi-ssid" class="text-base sm:text-xl font-black text-white truncate">---</span>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs sm:text-sm text-sky-200 font-semibold shrink-0">Mật khẩu:</span>
+          <span id="p-wifi-pass" class="text-lg sm:text-2xl font-mono font-black text-amber-300 tracking-wider truncate">---</span>
+        </div>
+      </div>
+
+      <button onclick="backToGreetingFromPassenger()" class="mt-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-sky-100 font-bold text-xs sm:text-sm transition active:scale-95">
+        ← Quay lại màn hình chính
+      </button>
+    </div>
+
+    <!-- 3D. Màn hình Cảm ơn & Nhờ Đánh Giá 5 Sao -->
+    <div id="p-screen-rate5" class="hidden flex-1 flex flex-col items-center justify-center p-6 bg-gradient-to-b from-[#072a20] via-[#0a382b] to-[#051c15] text-center gap-5">
+      <div class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-400/20 border border-amber-300/40 text-amber-300 text-xs sm:text-sm font-bold">
+        ✨ Hoàn thành chuyến đi ✨
+      </div>
+
+      <div id="p-rate5-thankyou" class="text-3xl sm:text-5xl font-black text-emerald-300 leading-tight">
+        Green FM cảm ơn
+      </div>
+
+      <!-- 5 ngôi sao lấp lánh -->
+      <div class="flex items-center justify-center gap-2 sm:gap-3 py-2 text-4xl sm:text-6xl">
+        <span class="star-animate">⭐</span>
+        <span class="star-animate">⭐</span>
+        <span class="star-animate">⭐</span>
+        <span class="star-animate">⭐</span>
+        <span class="star-animate">⭐</span>
+      </div>
+
+      <p id="p-rate5-desc" class="text-lg sm:text-2xl font-bold text-white max-w-md leading-relaxed">
+        Nếu hài lòng với chuyến đi, quý khách cho em xin đánh giá 5 sao trên ứng dụng nhé! ❤️
+      </p>
+
+      <div class="text-xs sm:text-sm text-emerald-200/70 font-medium pt-2">
+        Chúc quý khách thượng lộ bình an!
+      </div>
+    </div>
+
+    <!-- 3E. Màn hình Thông báo chữ tùy chỉnh -->
+    <div id="p-screen-message" class="hidden flex-1 flex flex-col items-center justify-center p-6 bg-gradient-to-b from-[#06241b] to-[#04140f] text-center gap-4">
+      <div class="text-4xl sm:text-5xl">💬</div>
+      <div id="p-custom-msg-text" class="text-3xl sm:text-5xl font-black text-white leading-snug max-w-lg"></div>
+    </div>
+
+    <!-- Lớp phủ xác nhận khi khách vừa chạm nút tốc độ -->
+    <div id="p-touch-feedback" class="hidden fixed inset-0 z-50 bg-emerald-950/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
+      <div class="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-4xl mb-4">
+        ✅
+      </div>
+      <div class="text-3xl font-black text-emerald-300">Đã gửi tài xế!</div>
+      <div id="p-touch-feedback-text" class="text-xl font-bold text-white mt-2"></div>
+    </div>
+  </main>
+
+  <!-- ==================== 4. MODAL CÀI ĐẶT ==================== -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full sm:max-w-lg bg-[#0b271f] border border-emerald-700/60 rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- Header modal -->
+      <div class="px-5 py-4 border-b border-emerald-800/60 flex items-center justify-between bg-[#082019]">
+        <div>
+          <h2 class="text-lg font-black text-white">⚙️ Cài đặt hệ thống</h2>
+          <p class="text-[11px] text-emerald-300/75">Tự động lưu trên máy & đồng bộ sang màn hình khách</p>
+        </div>
+        <button onclick="closeSettings()" class="w-9 h-9 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 font-bold text-lg flex items-center justify-center">
+          ✕
+        </button>
+      </div>
+
+      <!-- Nội dung cài đặt -->
+      <div class="p-5 overflow-y-auto space-y-5">
+
+        <!-- 1. Mã kết nối ngắn gọn -->
+        <div class="space-y-3">
+          <div class="text-xs font-bold uppercase tracking-wider text-emerald-400">1. Mã kết nối 2 máy (dùng chung Wi-Fi)</div>
+          <div class="flex gap-2">
+            <input id="cfg-room" type="text" oninput="updateShortLinkPreview()" class="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl bg-[#061812] border border-emerald-700 text-emerald-300 font-mono text-base font-black focus:border-emerald-400 outline-none" placeholder="vd: 6868" />
+            <button onclick="generateRandomRoom()" class="px-3.5 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-emerald-200 text-xs font-bold whitespace-nowrap transition">
+              🎲 Tạo 4 số
+            </button>
+          </div>
+          <div class="p-3 rounded-2xl bg-emerald-950/90 border border-emerald-700/50 space-y-2">
+            <input id="short-link-preview" type="text" readonly class="w-full px-3 py-2 rounded-xl bg-[#04120d] border border-emerald-800/80 text-emerald-300 font-mono text-xs outline-none select-all" />
+            <button onclick="copyPassengerLink(true)" class="w-full py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 font-bold text-xs transition active:scale-95">
+              📋 Lưu & Sao chép link mở nhanh máy TCL
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Chia sẻ Wi-Fi cho khách -->
+        <div class="space-y-3 pt-3 border-t border-emerald-800/50">
+          <div class="text-xs font-bold uppercase tracking-wider text-sky-400">2. Chia sẻ Wi-Fi trên xe cho khách</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-xs text-emerald-200/80 mb-1">Tên Wi-Fi (SSID)</label>
+              <input id="cfg-wifi-ssid" type="text" class="w-full px-3.5 py-2.5 rounded-xl bg-[#061812] border border-emerald-800 text-white text-sm focus:border-sky-400 outline-none" placeholder="Vd: GreenFM_FreeWiFi" />
+            </div>
+            <div>
+              <label class="block text-xs text-emerald-200/80 mb-1">Mật khẩu Wi-Fi</label>
+              <input id="cfg-wifi-pass" type="text" class="w-full px-3.5 py-2.5 rounded-xl bg-[#061812] border border-emerald-800 text-white font-mono text-sm focus:border-sky-400 outline-none" placeholder="Vd: 12345678" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Ngân hàng VietQR -->
+        <div class="space-y-3 pt-3 border-t border-emerald-800/50">
+          <div class="text-xs font-bold uppercase tracking-wider text-emerald-400">3. Tài khoản nhận tiền VietQR</div>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-xs text-emerald-200/80 mb-1">Ngân hàng</label>
+              <select id="cfg-bank" class="w-full px-3 py-2.5 rounded-xl bg-[#061812] border border-emerald-800 text-white text-sm focus:border-emerald-400 outline-none">
+                <option value="MB">MB Bank</option>
+                <option value="VCB">Vietcombank</option>
+                <option value="TCB">Techcombank</option>
+                <option value="ACB">ACB</option>
+                <option value="BIDV">BIDV</option>
+                <option value="ICB">VietinBank</option>
+                <option value="VPB">VPBank</option>
+                <option value="TPB">TPBank</option>
+                <option value="VIB">VIB</option>
+                <option value="STB">Sacombank</option>
+                <option value="SHB">SHB</option>
+                <option value="MSB">MSB</option>
+                <option value="OCB">OCB</option>
+                <option value="HDB">HDBank</option>
+                <option value="VBA">Agribank</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-emerald-200/80 mb-1">Số tài khoản</label>
+              <input id="cfg-accno" type="text" inputmode="numeric" class="w-full px-3.5 py-2.5 rounded-xl bg-[#061812] border border-emerald-800 text-white font-mono text-sm focus:border-emerald-400 outline-none" placeholder="0123456789" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs text-emerald-200/80 mb-1">Tên chủ tài khoản (không dấu)</label>
+            <input id="cfg-accname" type="text" class="w-full px-3.5 py-2.5 rounded-xl bg-[#061812] border border-emerald-800 text-white uppercase text-sm focus:border-emerald-400 outline-none" placeholder="NGUYEN VAN A" />
+          </div>
+        </div>
+
+        <!-- 4. Lời chào & Cảm ơn -->
+        <div class="space-y-3 pt-3 border-t border-emerald-800/50">
+          <div class="text-xs font-bold uppercase tracking-wider text-emerald-400">4. Lời chào & Đánh giá 5 sao</div>
+          <div>
+            <label class="block text-xs text-emerald-200/80 mb-1">Câu chào mở đầu</label>
+            <input id="cfg-greeting" type="text" class="w-full px-3.5 py-2.5 rounded-xl bg-[#061812] border border-emerald-800 text-white text-sm focus:border-emerald-400 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs text-emerald-200/80 mb-1">Câu cảm ơn (dưới QR & màn 5 sao)</label>
+            <input id="cfg-thankyou" type="text" class="w-full px-3.5 py-2.5 rounded-xl bg-[#061812] border border-emerald-800 text-white text-sm focus:border-emerald-400 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs text-emerald-200/80 mb-1">Nội dung nhờ đánh giá 5 sao</label>
+            <textarea id="cfg-rate5" rows="2" class="w-full px-3.5 py-2.5 rounded-xl bg-[#061812] border border-emerald-800 text-white text-sm focus:border-emerald-400 outline-none"></textarea>
+          </div>
+        </div>
+
+        <!-- 5. Telegram Bot cho AirPods -->
+        <div class="space-y-3 pt-3 border-t border-emerald-800/50">
+          <div class="text-xs font-bold uppercase tracking-wider text-emerald-400">5. Báo giọng nói AirPods khi chạy nền (Telegram Bot)</div>
+          <div>
+            <label class="block text-xs text-emerald-200/80 mb-1">Bot Token (tùy chọn)</label>
+            <input id="cfg-tg-token" type="text" class="w-full px-3.5 py-2.5 rounded-xl bg-[#061812] border border-emerald-800 text-white font-mono text-xs focus:border-emerald-400 outline-none" placeholder="123456:ABC-DEF..." />
+          </div>
+          <div>
+            <label class="block text-xs text-emerald-200/80 mb-1">Chat ID (tùy chọn)</label>
+            <input id="cfg-tg-chatid" type="text" class="w-full px-3.5 py-2.5 rounded-xl bg-[#061812] border border-emerald-800 text-white font-mono text-xs focus:border-emerald-400 outline-none" placeholder="987654321" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer modal -->
+      <div class="p-4 border-t border-emerald-800/60 bg-[#082019] flex gap-2.5">
+        <button onclick="closeSettings()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm transition">
+          Đóng
+        </button>
+        <button onclick="saveSettings(false)" class="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/20 transition active:scale-[0.98]">
+          💾 LƯU CÀI ĐẶT & ĐỒNG BỘ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== THÔNG BÁO TOAST ==================== -->
+  <div id="toast-box" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] max-w-[92vw] px-4 py-3 rounded-2xl bg-slate-900/95 border border-emerald-400/50 text-white text-sm font-bold shadow-2xl text-center">
+  </div>
+
+<script>
+  // ==================== 1. LƯU TRỮ BỀN VỮNG ĐA LỚP ====================
+  const STORAGE_KEY_CFG = "greenfm_config_v4";
+  const STORAGE_KEY_MODE = "greenfm_mode_v4";
+  const WIN_NAME_PREFIX = "GREENFM_STATE::";
+
+  function readWindowNameStore() {
+    try {
+      if (window.name && window.name.startsWith(WIN_NAME_PREFIX)) {
+        return JSON.parse(window.name.slice(WIN_NAME_PREFIX.length));
+      }
+    } catch (e) {}
+    return {};
+  }
+
+  function writeWindowNameStore(key, value) {
+    try {
+      const store = readWindowNameStore();
+      store[key] = value;
+      window.name = WIN_NAME_PREFIX + JSON.stringify(store);
+    } catch (e) {}
+  }
+
+  function safeSetStorage(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) {}
+    try {
+      const encoded = encodeURIComponent(value);
+      if (encoded.length < 3500) {
+        document.cookie = `${key}=${encoded}; path=/; max-age=31536000; SameSite=Lax`;
+      }
+    } catch (e) {}
+    writeWindowNameStore(key, value);
+  }
+
+  function safeGetStorage(key) {
+    try {
+      const val = localStorage.getItem(key);
+      if (val !== null && val !== "") return val;
+    } catch (e) {}
+    try {
+      const match = document.cookie.match(new RegExp("(?:^|; )" + key + "=([^;]*)"));
+      if (match && match[1]) return decodeURIComponent(match[1]);
+    } catch (e) {}
+    try {
+      const store = readWindowNameStore();
+      if (store[key]) return store[key];
+    } catch (e) {}
+    return null;
+  }
+
+  function generateShortCode() {
+    return String(Math.floor(1000 + Math.random() * 9000));
+  }
+
+  const DEFAULT_CONFIG = {
+    greeting: "Green FM xin chào",
+    thankYou: "Green FM cảm ơn",
+    rate5Text: "Nếu hài lòng với chuyến đi, quý khách cho em xin đánh giá 5 sao trên ứng dụng nhé! ❤️",
+    bankId: "MB",
+    accountNo: "0123456789",
+    accountName: "TAI XE GREEN FM",
+    wifiSsid: "",
+    wifiPass: "",
+    roomId: "",
+    tgToken: "",
+    tgChatId: "",
+    voiceEnabled: true
+  };
+
+  // Trạng thái ứng dụng
+  let config = loadConfig();
+  let currentView = "home"; // 'home' | 'driver' | 'passenger'
+  let wakeLock = null;
+  let toastTimer = null;
+
+  const driverState = {
+    lastSpeedType: "idle",
+    lastSpeedMsg: "Chưa có yêu cầu từ khách",
+    lastSpeedTime: "Sẵn sàng nhận tín hiệu trực tiếp qua mạng Wi-Fi"
+  };
+
+  const passengerState = {
+    screen: "greeting", // 'greeting' | 'qr' | 'wifi' | 'rate5' | 'message'
+    qrAmount: 0,
+    customMsg: ""
+  };
+
+  // Biến quản lý kết nối P2P (PeerJS)
+  let peer = null;
+  let activeConn = null;
+  let peerOnline = false;
+  let reconnectTimer = null;
+  let heartbeatTimer = null;
+  let lastPongAt = 0;
+  let lastPushedPayload = null;
+  const pendingAcks = new Map();
+
+  function persistConfig() {
+    safeSetStorage(STORAGE_KEY_CFG, JSON.stringify(config));
+  }
+
+  function loadConfig() {
+    let base = { ...DEFAULT_CONFIG };
+    try {
+      const saved = safeGetStorage(STORAGE_KEY_CFG)
+        || safeGetStorage("greenfm_config_v3")
+        || safeGetStorage("greenfm_config_v2");
+      if (saved) {
+        base = { ...base, ...JSON.parse(saved) };
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const shortCode = params.get("k");
+      if (shortCode) {
+        const cleanCode = shortCode.trim().replace(/[^a-zA-Z0-9_-]/g, "");
+        if (cleanCode) base.roomId = cleanCode;
+      }
+    } catch (e) {}
+
+    if (!base.roomId) base.roomId = generateShortCode();
+    safeSetStorage(STORAGE_KEY_CFG, JSON.stringify(base));
+    return base;
+  }
+
+  function getHostPeerId() {
+    const clean = (config.roomId || "6868").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    return `gfm-lan-host-${clean}`;
+  }
+
+  function makeMsgId() {
+    return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+  }
+
+  // ==================== 2. HIỂN THỊ THÔNG BÁO TOAST ====================
+  function showToast(msg, type = "success") {
+    const el = document.getElementById("toast-box");
+    el.innerText = msg;
+    el.className = "fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] max-w-[92vw] px-4 py-3 rounded-2xl text-sm font-bold shadow-2xl text-center transition ";
+    if (type === "error") {
+      el.className += "bg-red-950/95 border border-red-400/60 text-red-100";
+    } else if (type === "info") {
+      el.className += "bg-amber-950/95 border border-amber-400/60 text-amber-100";
+    } else {
+      el.className += "bg-slate-900/95 border border-emerald-400/60 text-emerald-100";
+    }
+    el.classList.remove("hidden");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.add("hidden"), 2600);
+  }
+
+  // ==================== 3. CHUYỂN VAI TRÒ & CẬP NHẬT GIAO DIỆN ====================
+  async function requestWakeLock() {
+    try {
+      if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen");
+    } catch (e) {}
+  }
+
+  function releaseWakeLock() {
+    try {
+      if (wakeLock) { wakeLock.release(); wakeLock = null; }
+    } catch (e) {}
+  }
+
+  function switchView(view, shouldSave = true) {
+    currentView = view;
+    ["home", "driver", "passenger"].forEach(v => {
+      document.getElementById(`view-${v}`).classList.add("hidden");
+    });
+    document.getElementById(`view-${view}`).classList.remove("hidden");
+
+    if (shouldSave) safeSetStorage(STORAGE_KEY_MODE, view);
+
+    if (view === "passenger") {
+      document.getElementById("top-nav").classList.add("hidden");
+      requestWakeLock();
+    } else {
+      document.getElementById("top-nav").classList.remove("hidden");
+      releaseWakeLock();
+    }
+
+    refreshUI();
+    connectP2P();
+  }
+
+  function joinAsPassengerWithCode() {
+    const input = document.getElementById("quick-join-code");
+    const code = (input.value || "").trim().replace(/[^a-zA-Z0-9_-]/g, "");
+    if (!code) {
+      showToast("Vui lòng nhập mã 4 số hiển thị trên máy tài xế!", "error");
+      input.focus();
+      return;
+    }
+    config.roomId = code;
+    persistConfig();
+    passengerState.screen = "greeting";
+    switchView("passenger", true);
+  }
+
+  function exitPassengerMode() {
+    switchView("home", true);
+  }
+
+  function renderWifiQr() {
+    const box = document.getElementById("wifi-qr-box");
+    if (!box) return;
+    box.innerHTML = "";
+    const ssid = (config.wifiSsid || "").trim();
+    const pass = (config.wifiPass || "").trim();
+    if (!ssid) {
+      box.innerHTML = `<div class="text-xs text-slate-500 font-semibold p-4">Chưa cài đặt tên Wi-Fi</div>`;
+      return;
+    }
+
+    // Chuẩn QR kết nối Wi-Fi tự động trên iPhone & Android
+    const esc = (s) => s.replace(/([\\;,:"])/g, "\\$1");
+    const auth = pass ? "WPA" : "nopass";
+    const qrPayload = `WIFI:T:${auth};S:${esc(ssid)};P:${esc(pass)};;`;
+
+    try {
+      if (typeof QRCode !== "undefined") {
+        new QRCode(box, {
+          text: qrPayload,
+          width: 196,
+          height: 196,
+          colorDark: "#0f172a",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+    } catch (e) {
+      box.innerHTML = `<div class="text-xs text-slate-500 font-semibold p-4">Không tạo được mã QR</div>`;
+    }
+  }
+
+  function refreshUI() {
+    // 1. Màn hình Home
+    const homeRoom = document.getElementById("home-room-id");
+    if (homeRoom) homeRoom.innerText = config.roomId;
+    const quickInput = document.getElementById("quick-join-code");
+    if (quickInput && !quickInput.value) quickInput.value = config.roomId;
+
+    // 2. Màn hình Tài xế
+    document.getElementById("driver-room-badge").innerText = config.roomId;
+    document.getElementById("driver-bank-badge").innerText = `${config.bankId} • ${config.accountNo}`;
+    document.getElementById("btn-greeting-preview").innerText = config.greeting;
+    document.getElementById("btn-wifi-preview").innerText = config.wifiSsid ? config.wifiSsid : "Chưa cài";
+    document.getElementById("driver-short-link-text").innerText = getShortPassengerUrl(config.roomId);
+
+    const voiceBtn = document.getElementById("btn-toggle-voice");
+    voiceBtn.innerText = config.voiceEnabled ? "🔊 Giọng nói: BẬT" : "🔇 Giọng nói: TẮT";
+    voiceBtn.className = config.voiceEnabled
+      ? "px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 transition active:scale-95"
+      : "px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700 transition active:scale-95";
+
+    const statusCard = document.getElementById("driver-status-card");
+    const statusText = document.getElementById("driver-status-text");
+    const statusTime = document.getElementById("driver-status-time");
+    statusText.innerText = driverState.lastSpeedMsg;
+    statusTime.innerText = driverState.lastSpeedTime;
+
+    statusCard.className = "rounded-2xl p-4 shadow-lg transition-colors duration-300 border ";
+    if (driverState.lastSpeedType === "slow") {
+      statusCard.className += "bg-sky-950/90 border-sky-400/70";
+      statusText.className = "text-lg sm:text-xl font-extrabold text-sky-300 leading-snug";
+    } else if (driverState.lastSpeedType === "fast") {
+      statusCard.className += "bg-orange-950/90 border-orange-400/70";
+      statusText.className = "text-lg sm:text-xl font-extrabold text-orange-300 leading-snug";
+    } else if (driverState.lastSpeedType === "normal") {
+      statusCard.className += "bg-emerald-950/90 border-emerald-400/70";
+      statusText.className = "text-lg sm:text-xl font-extrabold text-emerald-300 leading-snug";
+    } else {
+      statusCard.className += "bg-[#0c2d23] border-emerald-700/60";
+      statusText.className = "text-lg sm:text-xl font-extrabold text-amber-300 leading-snug";
+    }
+
+    // 3. Màn hình Khách (TCL)
+    document.getElementById("p-greeting-title").innerText = config.greeting;
+    document.getElementById("p-qr-thankyou").innerText = config.thankYou;
+    document.getElementById("p-rate5-thankyou").innerText = config.thankYou;
+    document.getElementById("p-rate5-desc").innerText = config.rate5Text;
+    document.getElementById("p-room-footer").innerText = config.roomId;
+
+    // Nút tắt xem Wi-Fi trên màn hình chào
+    const wifiShortcut = document.getElementById("p-wifi-shortcut-wrap");
+    if (config.wifiSsid && config.wifiSsid.trim()) {
+      wifiShortcut.classList.remove("hidden");
+    } else {
+      wifiShortcut.classList.add("hidden");
+    }
+
+    // Chuyển đúng sub-screen trên máy khách
+    ["greeting", "qr", "wifi", "rate5", "message"].forEach(s => {
+      document.getElementById(`p-screen-${s}`).classList.add("hidden");
+    });
+    document.getElementById(`p-screen-${passengerState.screen}`).classList.remove("hidden");
+
+    if (passengerState.screen === "qr") {
+      const amt = passengerState.qrAmount || 0;
+      document.getElementById("p-qr-amount").innerText = amt.toLocaleString("vi-VN") + " đ";
+      document.getElementById("p-qr-bankinfo").innerText = `${config.bankId} • ${config.accountNo} • ${config.accountName}`;
+      const qrUrl = `https://img.vietqr.io/image/${encodeURIComponent(config.bankId)}-${encodeURIComponent(config.accountNo)}-compact2.png?amount=${amt}&addInfo=Thanh%20toan%20cuoc%20xe&accountName=${encodeURIComponent(config.accountName)}`;
+      document.getElementById("p-qr-img").src = qrUrl;
+    } else if (passengerState.screen === "wifi") {
+      document.getElementById("p-wifi-ssid").innerText = config.wifiSsid || "Chưa cài tên Wi-Fi";
+      document.getElementById("p-wifi-pass").innerText = config.wifiPass ? config.wifiPass : "(Không mật khẩu)";
+      renderWifiQr();
+    } else if (passengerState.screen === "message") {
+      document.getElementById("p-custom-msg-text").innerText = passengerState.customMsg;
+    }
+  }
+
+  // ==================== 4. KẾT NỐI TRỰC TIẾP P2P (NHANH NHẠY KHI CHUNG MẠNG) ====================
+  function updateConnectionUI(state) {
+    const dot = document.getElementById("conn-dot");
+    const txt = document.getElementById("conn-text");
+    const pDot = document.getElementById("p-conn-dot");
+    const pLbl = document.getElementById("p-conn-label");
+
+    if (state === "connected") {
+      if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400 inline-block shrink-0";
+      if (txt) txt.innerText = `Sẵn sàng • Mã ${config.roomId}`;
+      if (pDot) pDot.className = "w-2 h-2 rounded-full bg-emerald-400 inline-block";
+      if (pLbl) pLbl.innerText = "Đã nối trực tiếp";
+    } else if (state === "error") {
+      if (dot) dot.className = "w-2 h-2 rounded-full bg-red-400 inline-block shrink-0";
+      if (txt) txt.innerText = "Mất kết nối • Đang thử lại...";
+      if (pDot) pDot.className = "w-2 h-2 rounded-full bg-red-400 inline-block";
+      if (pLbl) pLbl.innerText = "Đang tìm máy tài xế...";
+    } else {
+      if (dot) dot.className = "w-2 h-2 rounded-full bg-amber-400 inline-block shrink-0";
+      if (txt) txt.innerText = "Đang khởi tạo mã phòng...";
+      if (pDot) pDot.className = "w-2 h-2 rounded-full bg-amber-400 inline-block";
+      if (pLbl) pLbl.innerText = "Đang kết nối...";
+    }
+  }
+
+  function updatePeerUI(isOnline) {
+    peerOnline = isOnline;
+    const bar = document.getElementById("peer-status-bar");
+    const dot = document.getElementById("peer-dot");
+    const txt = document.getElementById("peer-text");
+    if (!bar || !dot || !txt) return;
+
+    if (isOnline) {
+      bar.className = "rounded-2xl bg-emerald-950/85 border border-emerald-400/60 p-3.5 flex items-center justify-between gap-2 shadow";
+      dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0";
+      txt.className = "text-xs font-bold text-emerald-200 truncate";
+      txt.innerText = "⚡ Đã kết nối trực tiếp màn hình khách TCL";
+    } else {
+      bar.className = "rounded-2xl bg-[#0a231c] border border-amber-500/40 p-3.5 flex items-center justify-between gap-2 shadow";
+      dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0";
+      txt.className = "text-xs font-bold text-amber-200 truncate";
+      txt.innerText = "Đang chờ màn hình khách nhập mã...";
+    }
+  }
+
+  function cleanupP2P() {
+    clearTimeout(reconnectTimer);
+    clearInterval(heartbeatTimer);
+    if (activeConn) {
+      try { activeConn.close(); } catch (e) {}
+      activeConn = null;
+    }
+    if (peer) {
+      try { peer.destroy(); } catch (e) {}
+      peer = null;
+    }
+    updatePeerUI(false);
+  }
+
+  function forceReconnect() {
+    showToast("Đang làm mới kết nối P2P...", "info");
+    connectP2P();
+  }
+
+  function connectP2P() {
+    cleanupP2P();
+
+    if (currentView === "home") {
+      updateConnectionUI("connecting");
+      return;
+    }
+
+    if (typeof Peer === "undefined") {
+      updateConnectionUI("error");
+      showToast("Không tải được thư viện kết nối. Hãy kiểm tra mạng!", "error");
+      return;
+    }
+
+    updateConnectionUI("connecting");
+
+    const peerConfig = {
+      debug: 0,
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" }
+        ]
+      }
+    };
+
+    try {
+      if (currentView === "driver") {
+        // Máy Tài xế mở phòng với ID theo mã 4 số
+        peer = new Peer(getHostPeerId(), peerConfig);
+
+        peer.on("open", () => {
+          updateConnectionUI("connected");
+        });
+
+        peer.on("connection", (conn) => {
+          // Chấp nhận kết nối mới từ máy khách TCL
+          if (activeConn && activeConn !== conn) {
+            try { activeConn.close(); } catch (e) {}
+          }
+          activeConn = conn;
+          setupConnHandlers(conn);
+        });
+
+        peer.on("disconnected", () => {
+          updateConnectionUI("error");
+          try { peer.reconnect(); } catch (e) {}
+        });
+
+        peer.on("error", (err) => {
+          if (err && err.type === "unavailable-id") {
+            updateConnectionUI("connecting");
+            reconnectTimer = setTimeout(() => connectP2P(), 2500);
+          } else {
+            updateConnectionUI("error");
+            reconnectTimer = setTimeout(() => connectP2P(), 4000);
+          }
+        });
+      } else if (currentView === "passenger") {
+        // Máy Khách tạo ID tạm và gọi thẳng tới mã phòng của Tài xế
+        peer = new Peer(undefined, peerConfig);
+
+        peer.on("open", () => {
+          dialDriverHost();
+        });
+
+        peer.on("disconnected", () => {
+          updateConnectionUI("error");
+          try { peer.reconnect(); } catch (e) {}
+        });
+
+        peer.on("error", () => {
+          updateConnectionUI("error");
+          clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(() => dialDriverHost(), 2500);
+        });
+      }
+    } catch (e) {
+      updateConnectionUI("error");
+    }
+  }
+
+  function dialDriverHost() {
+    if (!peer || peer.destroyed || currentView !== "passenger") return;
+    if (activeConn && activeConn.open) return;
+
+    updateConnectionUI("connecting");
+    try {
+      const conn = peer.connect(getHostPeerId(), { reliable: true });
+      activeConn = conn;
+      setupConnHandlers(conn);
+
+      // Nếu sau 5 giây chưa mở được thì tự thử lại
+      clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(() => {
+        if (!activeConn || !activeConn.open) {
+          updateConnectionUI("error");
+          dialDriverHost();
+        }
+      }, 5000);
+    } catch (e) {
+      reconnectTimer = setTimeout(() => dialDriverHost(), 3000);
+    }
+  }
+
+  function setupConnHandlers(conn) {
+    conn.on("open", () => {
+      clearTimeout(reconnectTimer);
+      lastPongAt = Date.now();
+      updateConnectionUI("connected");
+      updatePeerUI(true);
+
+      if (currentView === "driver") {
+        showToast("⚡ Màn hình khách TCL đã kết nối!", "success");
+        // Đồng bộ ngay cấu hình & trạng thái hiện tại sang máy khách
+        sendSyncConfig();
+        if (lastPushedPayload) {
+          try { conn.send(lastPushedPayload); } catch (e) {}
+        }
+      } else {
+        showToast("⚡ Đã nối trực tiếp với máy tài xế!", "success");
+        startPassengerHeartbeat();
+      }
+    });
+
+    conn.on("data", (data) => {
+      handleP2PMessage(data, conn);
+    });
+
+    conn.on("close", () => {
+      if (activeConn === conn) activeConn = null;
+      updatePeerUI(false);
+      if (currentView === "passenger") {
+        updateConnectionUI("error");
+        clearInterval(heartbeatTimer);
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(() => dialDriverHost(), 2000);
+      }
+    });
+
+    conn.on("error", () => {
+      if (currentView === "passenger") {
+        updateConnectionUI("error");
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(() => dialDriverHost(), 2500);
+      }
+    });
+  }
+
+  function startPassengerHeartbeat() {
+    clearInterval(heartbeatTimer);
+    lastPongAt = Date.now();
+    heartbeatTimer = setInterval(() => {
+      if (currentView !== "passenger") {
+        clearInterval(heartbeatTimer);
+        return;
+      }
+      if (activeConn && activeConn.open) {
+        if (Date.now() - lastPongAt > 14000) {
+          // Quá lâu không thấy phản hồi -> nối lại
+          try { activeConn.close(); } catch (e) {}
+          dialDriverHost();
+          return;
+        }
+        try { activeConn.send({ type: "PING" }); } catch (e) {}
+      } else {
+        dialDriverHost();
+      }
+    }, 4500);
+  }
+
+  function sendSyncConfig() {
+    if (!activeConn || !activeConn.open) return;
+    try {
+      activeConn.send({
+        type: "SYNC_CONFIG",
+        config: {
+          greeting: config.greeting,
+          thankYou: config.thankYou,
+          rate5Text: config.rate5Text,
+          bankId: config.bankId,
+          accountNo: config.accountNo,
+          accountName: config.accountName,
+          wifiSsid: config.wifiSsid,
+          wifiPass: config.wifiPass,
+          tgToken: config.tgToken,
+          tgChatId: config.tgChatId
+        }
+      });
+    } catch (e) {}
+  }
+
+  function sendCommandToPassenger(payloadObj, successToast) {
+    const msgId = makeMsgId();
+    const packet = { ...payloadObj, id: msgId, ts: Date.now() };
+    lastPushedPayload = packet;
+
+    if (!activeConn || !activeConn.open) {
+      showToast("Chưa thấy màn hình khách nối vào! Đã lưu lệnh, sẽ tự đẩy khi khách vào.", "info");
+      return;
+    }
+
+    try {
+      activeConn.send(packet);
+      const timer = setTimeout(() => {
+        if (pendingAcks.has(msgId)) {
+          pendingAcks.delete(msgId);
+          showToast("⚠️ Màn hình khách phản hồi chậm!", "info");
+        }
+      }, 3500);
+      pendingAcks.set(msgId, { timer, successToast });
+    } catch (e) {
+      showToast("Lỗi gửi lệnh, hãy bấm Nối lại!", "error");
+    }
+  }
+
+  function handleP2PMessage(data, conn) {
+    if (!data || typeof data !== "object") return;
+
+    // Heartbeat giữ kết nối
+    if (data.type === "PING") {
+      try { conn.send({ type: "PONG" }); } catch (e) {}
+      return;
+    }
+    if (data.type === "PONG") {
+      lastPongAt = Date.now();
+      return;
+    }
+
+    // Máy Tài xế nhận phản hồi
+    if (currentView === "driver") {
+      if (data.type === "ACK" && data.ackId && pendingAcks.has(data.ackId)) {
+        const item = pendingAcks.get(data.ackId);
+        clearTimeout(item.timer);
+        pendingAcks.delete(data.ackId);
+        showToast(item.successToast || "✅ Màn hình khách đã hiển thị!", "success");
+        return;
+      }
+
+      if (data.type === "SPEED") {
+        const timeStr = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        driverState.lastSpeedType = data.speedType || "normal";
+        driverState.lastSpeedMsg = data.text || "Khách gửi yêu cầu";
+        driverState.lastSpeedTime = `Nhận trực tiếp lúc ${timeStr}`;
+        refreshUI();
+        speakVietnamese(driverState.lastSpeedMsg);
+        showToast(driverState.lastSpeedMsg, "info");
+      }
+      return;
+    }
+
+    // Máy Khách (TCL) nhận lệnh từ Tài xế
+    if (currentView === "passenger") {
+      if (data.type === "SYNC_CONFIG" && data.config) {
+        config = { ...config, ...data.config };
+        persistConfig();
+        refreshUI();
+        return;
+      }
+
+      if (data.type === "QR") {
+        if (data.bankId) config.bankId = data.bankId;
+        if (data.accountNo) config.accountNo = data.accountNo;
+        if (data.accountName) config.accountName = data.accountName;
+        if (data.thankYou) config.thankYou = data.thankYou;
+        persistConfig();
+        passengerState.screen = "qr";
+        passengerState.qrAmount = parseInt(data.amount, 10) || 0;
+        refreshUI();
+      } else if (data.type === "WIFI") {
+        if (typeof data.wifiSsid === "string") config.wifiSsid = data.wifiSsid;
+        if (typeof data.wifiPass === "string") config.wifiPass = data.wifiPass;
+        persistConfig();
+        passengerState.screen = "wifi";
+        refreshUI();
+      } else if (data.type === "RATE5") {
+        if (data.thankYou) config.thankYou = data.thankYou;
+        if (data.rate5Text) config.rate5Text = data.rate5Text;
+        persistConfig();
+        passengerState.screen = "rate5";
+        refreshUI();
+      } else if (data.type === "RESET") {
+        if (data.greeting) {
+          config.greeting = data.greeting;
+          persistConfig();
+        }
+        passengerState.screen = "greeting";
+        refreshUI();
+      } else if (data.type === "MSG") {
+        passengerState.screen = "message";
+        passengerState.customMsg = data.text || "";
+        refreshUI();
+      }
+
+      if (data.id) {
+        try { conn.send({ type: "ACK", ackId: data.id }); } catch (e) {}
+      }
+    }
+  }
+
+  // Giải phóng mã phòng gọn gàng khi tắt/reload trang
+  window.addEventListener("beforeunload", () => {
+    cleanupP2P();
+  });
+
+  // Tự nối lại khi mở lại trình duyệt từ nền
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && currentView !== "home") {
+      if (currentView === "passenger") {
+        requestWakeLock();
+        if (!activeConn || !activeConn.open) dialDriverHost();
+      } else if (currentView === "driver") {
+        if (!peer || peer.destroyed || peer.disconnected) connectP2P();
+      }
+    }
+  });
+
+  // ==================== 5. THAO TÁC CỦA TÀI XẾ ====================
+  function parseAmount(raw) {
+    const val = parseInt(raw, 10);
+    if (isNaN(val) || val <= 0) return 0;
+    return val < 1000 ? val * 1000 : val;
+  }
+
+  function updateFarePreview() {
+    const amt = parseAmount(document.getElementById("fare-input").value);
+    document.getElementById("fare-preview").innerText = amt > 0
+      ? `Số tiền tạo mã QR: ${amt.toLocaleString("vi-VN")} đ`
+      : "Gõ 35 sẽ tự hiểu là 35.000 đ";
+  }
+
+  function setQuickFare(k) {
+    document.getElementById("fare-input").value = k;
+    updateFarePreview();
+  }
+
+  function pushQR() {
+    const amt = parseAmount(document.getElementById("fare-input").value);
+    if (amt <= 0) {
+      showToast("Vui lòng nhập số tiền trước khi đẩy QR!", "error");
+      return;
+    }
+    sendCommandToPassenger(
+      {
+        type: "QR",
+        amount: amt,
+        bankId: config.bankId,
+        accountNo: config.accountNo,
+        accountName: config.accountName,
+        thankYou: config.thankYou
+      },
+      `✅ Máy khách đã hiện QR ${amt.toLocaleString("vi-VN")} đ!`
+    );
+  }
+
+  function pushWifi() {
+    if (!config.wifiSsid || !config.wifiSsid.trim()) {
+      showToast("Hãy nhập Tên Wi-Fi trong mục ⚙️ Cài đặt trước nhé!", "info");
+      openSettings();
+      return;
+    }
+    sendCommandToPassenger(
+      {
+        type: "WIFI",
+        wifiSsid: config.wifiSsid,
+        wifiPass: config.wifiPass
+      },
+      `✅ Máy khách đã hiện Wi-Fi: ${config.wifiSsid}!`
+    );
+  }
+
+  function pushRate5() {
+    sendCommandToPassenger(
+      {
+        type: "RATE5",
+        thankYou: config.thankYou,
+        rate5Text: config.rate5Text
+      },
+      "✅ Máy khách đã hiện màn hình 5 sao!"
+    );
+  }
+
+  function pushReset() {
+    document.getElementById("fare-input").value = "";
+    updateFarePreview();
+    sendCommandToPassenger(
+      {
+        type: "RESET",
+        greeting: config.greeting
+      },
+      "✅ Máy khách đã về màn hình chào!"
+    );
+  }
+
+  function pushCustomMessage() {
+    const input = document.getElementById("custom-msg-input");
+    const msg = (input ? input.value : "").trim();
+    if (!msg) {
+      showToast("Vui lòng nhập nội dung cần hiển thị!", "error");
+      return;
+    }
+    sendCommandToPassenger(
+      { type: "MSG", text: msg },
+      "✅ Máy khách đã hiện dòng chữ!"
+    );
+    input.value = "";
+  }
+
+  function toggleVoice() {
+    config.voiceEnabled = !config.voiceEnabled;
+    persistConfig();
+    refreshUI();
+    if (config.voiceEnabled) speakVietnamese("Đã bật giọng nói");
+  }
+
+  function speakVietnamese(text) {
+    if (!config.voiceEnabled) return;
+    try {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = "vi-VN";
+        utter.rate = 1.05;
+        window.speechSynthesis.speak(utter);
+      }
+    } catch (e) {}
+  }
+
+  // ==================== 6. THAO TÁC CỦA KHÁCH (MÀN HÌNH TCL) ====================
+  function passengerSelectSpeed(speedType, message) {
+    const overlay = document.getElementById("p-touch-feedback");
+    document.getElementById("p-touch-feedback-text").innerText = message;
+    overlay.classList.remove("hidden");
+    setTimeout(() => overlay.classList.add("hidden"), 2000);
+
+    // 1. Gửi trực tiếp sang máy Tài xế qua P2P
+    if (activeConn && activeConn.open) {
+      try {
+        activeConn.send({ type: "SPEED", speedType, text: message, id: makeMsgId() });
+      } catch (e) {}
+    } else {
+      dialDriverHost();
+    }
+
+    // 2. Gửi sang Telegram để AirPods tự đọc khi máy tài xế mở app chạy xe
+    if (config.tgToken && config.tgChatId) {
+      fetch(`https://api.telegram.org/bot${config.tgToken}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: config.tgChatId, text: message })
+      }).catch(() => {});
+    }
+  }
+
+  function openWifiFromPassenger() {
+    passengerState.screen = "wifi";
+    refreshUI();
+  }
+
+  function backToGreetingFromPassenger() {
+    passengerState.screen = "greeting";
+    refreshUI();
+  }
+
+  // ==================== 7. CÀI ĐẶT & LINK NGẮN ====================
+  function getShortPassengerUrl(roomCode) {
+    const code = (roomCode || config.roomId || "6868").trim().replace(/[^a-zA-Z0-9_-]/g, "");
+    try {
+      if (window.location.origin && window.location.origin !== "null" && window.location.protocol.startsWith("http")) {
+        return `${window.location.origin}${window.location.pathname}?k=${encodeURIComponent(code)}`;
+      }
+    } catch (e) {}
+    return `?k=${encodeURIComponent(code)}`;
+  }
+
+  function updateShortLinkPreview() {
+    const roomInput = document.getElementById("cfg-room");
+    const previewEl = document.getElementById("short-link-preview");
+    if (roomInput && previewEl) {
+      previewEl.value = getShortPassengerUrl(roomInput.value);
+    }
+  }
+
+  function openSettings() {
+    document.getElementById("cfg-greeting").value = config.greeting;
+    document.getElementById("cfg-thankyou").value = config.thankYou;
+    document.getElementById("cfg-rate5").value = config.rate5Text;
+    document.getElementById("cfg-bank").value = config.bankId;
+    document.getElementById("cfg-accno").value = config.accountNo;
+    document.getElementById("cfg-accname").value = config.accountName;
+    document.getElementById("cfg-wifi-ssid").value = config.wifiSsid || "";
+    document.getElementById("cfg-wifi-pass").value = config.wifiPass || "";
+    document.getElementById("cfg-room").value = config.roomId;
+    document.getElementById("cfg-tg-token").value = config.tgToken;
+    document.getElementById("cfg-tg-chatid").value = config.tgChatId;
+    updateShortLinkPreview();
+    document.getElementById("settings-modal").classList.remove("hidden");
+  }
+
+  function closeSettings() {
+    document.getElementById("settings-modal").classList.add("hidden");
+  }
+
+  function generateRandomRoom() {
+    document.getElementById("cfg-room").value = generateShortCode();
+    updateShortLinkPreview();
+  }
+
+  function saveSettings(silent = false) {
+    const room = document.getElementById("cfg-room").value.trim().replace(/[^a-zA-Z0-9_-]/g, "");
+    if (!room) {
+      showToast("Mã kết nối không được để trống!", "error");
+      return false;
+    }
+
+    const roomChanged = room !== config.roomId;
+
+    config.greeting = document.getElementById("cfg-greeting").value.trim() || "Green FM xin chào";
+    config.thankYou = document.getElementById("cfg-thankyou").value.trim() || "Green FM cảm ơn";
+    config.rate5Text = document.getElementById("cfg-rate5").value.trim() || DEFAULT_CONFIG.rate5Text;
+    config.bankId = document.getElementById("cfg-bank").value;
+    config.accountNo = document.getElementById("cfg-accno").value.trim() || "0123456789";
+    config.accountName = document.getElementById("cfg-accname").value.trim().toUpperCase() || "TAI XE";
+    config.wifiSsid = document.getElementById("cfg-wifi-ssid").value.trim();
+    config.wifiPass = document.getElementById("cfg-wifi-pass").value.trim();
+    config.roomId = room;
+    config.tgToken = document.getElementById("cfg-tg-token").value.trim();
+    config.tgChatId = document.getElementById("cfg-tg-chatid").value.trim();
+
+    persistConfig();
+    if (!silent) closeSettings();
+    refreshUI();
+
+    if (roomChanged) {
+      connectP2P();
+    } else if (currentView === "driver") {
+      sendSyncConfig();
+    }
+
+    if (!silent) showToast("Đã lưu cài đặt & đồng bộ thành công!");
+    return true;
+  }
+
+  function copyPassengerLink(fromModal = false) {
+    if (fromModal && !saveSettings(true)) return;
+    try {
+      const shareUrl = getShortPassengerUrl(config.roomId);
+      const temp = document.createElement("textarea");
+      temp.value = shareUrl;
+      temp.style.position = "fixed";
+      temp.style.opacity = "0";
+      document.body.appendChild(temp);
+      temp.focus();
+      temp.select();
+      document.execCommand("copy");
+      document.body.removeChild(temp);
+      showToast(`Đã chép link ngắn (?k=${config.roomId})!`);
+    } catch (e) {
+      showToast("Hãy chọn và sao chép link thủ công nhé!", "info");
+    }
+  }
+
+  // ==================== 8. KHỞI CHẠY ỨNG DỤNG ====================
+  window.addEventListener("DOMContentLoaded", () => {
+    const params = new URLSearchParams(window.location.search);
+    const shortCode = params.get("k");
+    const savedMode = safeGetStorage(STORAGE_KEY_MODE);
+
+    if (shortCode) {
+      switchView("passenger", true);
+    } else if (savedMode === "driver" || savedMode === "passenger") {
+      switchView(savedMode, false);
+    } else {
+      switchView("home", false);
+    }
+  });
+</script>
+</body>
+</html>
